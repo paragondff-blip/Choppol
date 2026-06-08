@@ -15,7 +15,7 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/shop" className="hover:text-white transition-colors">Shop All</Link></li>
-              <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/p/about" className="hover:text-white transition-colors">About Us</Link></li>
               <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
               <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
             </ul>
@@ -24,9 +24,9 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Customer Service</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/track-order" className="hover:text-white transition-colors">Track Order</Link></li>
-              <li><Link to="/shipping" className="hover:text-white transition-colors">Shipping Info</Link></li>
-              <li><Link to="/returns" className="hover:text-white transition-colors">Returns & Refunds</Link></li>
-              <li><Link to="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+              <li><Link to="/p/shipping" className="hover:text-white transition-colors">Shipping Info</Link></li>
+              <li><Link to="/p/returns" className="hover:text-white transition-colors">Returns & Refunds</Link></li>
+              <li><Link to="/p/faq" className="hover:text-white transition-colors">FAQ</Link></li>
             </ul>
           </div>
           <div>
@@ -48,8 +48,8 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm">&copy; {new Date().getFullYear()} CHOPPOL. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0 text-sm">
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/p/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/p/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

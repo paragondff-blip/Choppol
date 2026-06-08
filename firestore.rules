@@ -94,5 +94,21 @@ service cloud.firestore {
       allow update: if isAdmin() || (incoming().diff(existing()).affectedKeys().hasOnly(['isUsed']) && existing().isUsed == false && incoming().isUsed == true);
       allow delete: if isAdmin();
     }
+
+    // --- PAGES ---
+    function isValidPage(data) {
+      return data.keys().hasAll(['slug', 'title', 'content', 'updatedAt']) &&
+             data.slug is string && data.slug.size() <= 100 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string &&
+             data.updatedAt is number;
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPage(incoming());
+      allow update: if isAdmin() && isValidPage(incoming());
+      allow delete: if isAdmin();
+    }
   }
 }

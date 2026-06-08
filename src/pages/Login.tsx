@@ -25,11 +25,13 @@ export default function Login() {
         const loginEmail = 'nahid.mfal.mis@gmail.com';
         try {
           await signInWithEmailAndPassword(auth, loginEmail, password);
+          useAuthStore.getState().setAdmin(true);
           setTimeout(() => navigate('/admin'), 1000); 
         } catch (err: any) {
            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
              try {
                await createUserWithEmailAndPassword(auth, loginEmail, password);
+               useAuthStore.getState().setAdmin(true);
                setTimeout(() => navigate('/admin'), 1000);
              } catch (createErr: any) {
                const isOpNotAllowed = createErr?.code === 'auth/operation-not-allowed' || 

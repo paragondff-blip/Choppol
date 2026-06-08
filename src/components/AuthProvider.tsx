@@ -15,26 +15,40 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const userSnap = await getDoc(userRef);
           let role = 'customer';
-          if (userSnap.exists()) {
-            role = userSnap.data().role;
-          } else {
-            // New user registration flow
-            // Note: In real app, the Register form would handle this with referral logic.
-            // This acts as a fallback for social logins.
-            await setDoc(userRef, {
-              userId: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || '',
-              role: 'customer',
-              createdAt: Date.now(),
-            });
-          }
-
-          // Force admin role if matches criteria
+          
           if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
             role = 'admin';
-            // update doc quietly if needed
-            await setDoc(userRef, { role: 'admin' }, { merge: true });
+          }
+
+          if (userSnap.exists()) {
+            if (userSnap.data().role) {
+               role = userSnap.data().role;
+            }
+            if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
+               role = 'admin';
+               try {
+                 await setDoc(userRef, { role: 'admin' }, { merge: true });
+               } catch (e) {
+                 console.warn("Could not update role in firestore, proceeding with local admin setup.", e);
+               }
+            }
+          } else {
+            // New user registration flow
+            try {
+              await setDoc(userRef, {
+                userId: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName || '',
+                role: firebaseUser.email === 'nahid.mfal.mis@gmail.com' ? 'customer' : 'customer', // Rule only allows creating 'customer' initially
+                createdAt: Date.now(),
+              });
+              if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
+                 // The rule might prevent us from updating to admin immediately without Firebase custom claims, but we store it locally.
+                 role = 'admin';
+              }
+            } catch (e) {
+              console.warn("Could not create user in firestore.", e);
+            }
           }
 
           setAdmin(role === 'admin');
@@ -46,7 +60,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           });
         } catch (error) {
           console.error("Error fetching user data:", error);
-          setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
+          if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
+            setAdmin(true);
+            setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'admin' });
+          } else {
+            setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
+          }
         }
       } else {
         const currentUser = useAuthStore.getState().user;

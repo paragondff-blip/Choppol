@@ -9,6 +9,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import DynamicPage from './pages/DynamicPage';
+
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
 import TrackOrder from './pages/TrackOrder';
@@ -42,6 +44,7 @@ export default function App() {
           <Route path="returns" element={<Returns />} />
           <Route path="faq" element={<FAQ />} />
           <Route path="contact" element={<ContactUs />} />
+          <Route path="p/:slug" element={<DynamicPage />} />
           
           <Route path="*" element={<Home />} />
         </Route>
