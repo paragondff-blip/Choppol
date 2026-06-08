@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // --- USERS ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email', 'role', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.email is string &&
+             data.role in ['customer', 'admin'] &&
+             data.createdAt is number;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().role == 'customer';
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'shippingAddress', 'referralCode']) && incoming().role == existing().role) ||
+        isAdmin()
+      );
+    }
+
+    // --- PRODUCTS ---
+    function isValidProduct(data) {
+      return data.keys().hasAll(['title', 'description', 'price', 'category', 'brand', 'stock', 'createdAt']) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 2000 &&
+             data.price is number && data.price >= 0 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.brand is string && data.brand.size() <= 100 &&
+             data.stock is number && data.stock >= 0 &&
+             data.createdAt is number;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // --- ORDERS ---
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'items', 'totalAmount', 'status', 'shippingAddress', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.items is list && data.items.size() <= 100 && data.items.size() > 0 &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'] &&
+             data.createdAt is number;
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidOrder(incoming()) && incoming().status == 'pending';
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (existing().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status']) && existing().status == 'pending' && incoming().status == 'cancelled')
+      );
+    }
+
+    // --- VOUCHERS ---
+    function isValidVoucher(data) {
+      return data.keys().hasAll(['code', 'discountPercentage', 'isUsed', 'createdAt']) &&
+             data.code is string && data.code.size() <= 50 &&
+             data.discountPercentage is number && data.discountPercentage > 0 && data.discountPercentage <= 100 &&
+             data.isUsed is bool &&
+             data.createdAt is number;
+    }
+
+    match /vouchers/{voucherId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidVoucher(incoming());
+      allow update: if isAdmin() || (incoming().diff(existing()).affectedKeys().hasOnly(['isUsed']) && existing().isUsed == false && incoming().isUsed == true);
+      allow delete: if isAdmin();
+    }
+  }
+}

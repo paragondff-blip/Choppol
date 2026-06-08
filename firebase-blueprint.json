@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with optional referral, vouchers, and address info.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "referralCode": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "email", "role", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Store product listings.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "images": { "type": "array" },
+        "category": { "type": "string" },
+        "brand": { "type": "string" },
+        "stock": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviews": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "description", "price", "category", "brand", "stock", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders including items and status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled", "returned"] },
+        "shippingAddress": { "type": "object" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "items", "totalAmount", "status", "shippingAddress", "createdAt"]
+    },
+    "Voucher": {
+      "title": "Voucher",
+      "description": "Discount vouchers generated from referrals.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "discountPercentage": { "type": "number" },
+        "ownerId": { "type": "string" },
+        "isUsed": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["code", "discountPercentage", "ownerId", "isUsed", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles. Accessible by the user and admins."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Product catalog. Public reads, admin writes."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders. Users read their own, admin read/write all."
+    },
+    "/vouchers/{voucherId}": {
+      "schema": { "$ref": "#/entities/Voucher" },
+      "description": "Customer vouchers. Users read theirs, system creates them."
+    }
+  }
+}
