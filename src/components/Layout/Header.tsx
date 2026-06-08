@@ -1,9 +1,11 @@
-import { ShoppingCart, Menu, Search, User, X, Heart } from 'lucide-react';
+import { ShoppingCart, Menu, Search, User, X, Heart, LogOut } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
 import { useWishlistStore } from '../../store/useWishlistStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { auth } from '../../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,6 +18,15 @@ export default function Header() {
   
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalWishlistItems = wishlistItems.length;
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +72,15 @@ export default function Header() {
             <Link to={user ? (isAdmin ? '/admin' : '/dashboard') : '/login'} className="text-gray-700 hover:text-black">
               <User className="h-5 w-5" />
             </Link>
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="text-gray-700 hover:text-red-600 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            )}
             <Link to="/wishlist" className="relative text-gray-700 hover:text-red-500 transition-colors">
               <Heart className="h-5 w-5" />
               {totalWishlistItems > 0 && (
@@ -125,6 +145,14 @@ export default function Header() {
             <Link onClick={() => setIsMenuOpen(false)} to="/about" className="block py-3 text-base font-medium text-gray-900 border-b border-gray-50">About Us</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/blog" className="block py-3 text-base font-medium text-gray-900 border-b border-gray-50">Blog</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/track-order" className="block py-3 text-base font-medium text-gray-900 border-b border-gray-50">Track Order</Link>
+            {user && (
+              <button 
+                onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                className="w-full text-left py-3 text-base font-medium text-red-600 border-b border-gray-50 flex items-center"
+              >
+                <LogOut className="h-5 w-5 mr-3" /> Logout
+              </button>
+            )}
           </div>
         </div>
       )}
