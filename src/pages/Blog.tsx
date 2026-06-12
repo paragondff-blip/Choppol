@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Blog() {
   const posts = [
     {
@@ -46,7 +48,7 @@ export default function Blog() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">{post.title}</h2>
               <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
-              <button className="text-black font-bold hover:underline">Read Article &rarr;</button>
+              <Link to={`/blog/${post.id}`} className="text-black font-bold hover:underline">Read Article &rarr;</Link>
             </div>
           </article>
         ))}

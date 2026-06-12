@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function ContactUs() {
-  const handleMessage = (e: React.FormEvent) => {
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Thank you for your message! Our team will get back to you shortly.");
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'messages'), {
+        ...formData,
+        createdAt: Date.now(),
+        status: 'unread'
+      });
+      alert("Thank you for your message! Our team will get back to you shortly.");
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -21,23 +40,23 @@ export default function ContactUs() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                <input required type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="John Doe" />
+                <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="John Doe" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                <input required type="email" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="john@example.com" />
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="john@example.com" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-              <input required type="text" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="How can we help?" />
+              <input required type="text" value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="How can we help?" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-              <textarea required rows={5} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="Write your message here..."></textarea>
+              <textarea required rows={5} value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-black focus:border-black" placeholder="Write your message here..."></textarea>
             </div>
-            <button type="submit" className="px-8 py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition w-full md:w-auto">
-              Send Message
+            <button type="submit" disabled={loading} className="px-8 py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition w-full md:w-auto disabled:opacity-50">
+              {loading ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         </div>

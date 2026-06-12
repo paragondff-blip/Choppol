@@ -17,6 +17,8 @@ export interface Product {
   rating: number;
   reviews: number;
   sizes: (string | number)[];
+  sizeVariants?: { size: string | number, priceModifier: number }[];
+  colorVariants?: { name: string, hex: string, imageUrl?: string }[];
 }
 
 interface ProductStore {

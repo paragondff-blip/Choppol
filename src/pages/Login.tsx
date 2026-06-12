@@ -1,29 +1,42 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-import { AlertCircle, ShieldAlert } from 'lucide-react';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { AlertCircle, ShieldAlert, CheckCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setMessage('');
     
     if (isAdminMode) {
       const isNahid = email.toLowerCase() === 'nahid';
       if (isNahid && password === '123456') {
         const loginEmail = 'nahid.mfal.mis@gmail.com';
         try {
+          await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
           await signInWithEmailAndPassword(auth, loginEmail, password);
           useAuthStore.getState().setAdmin(true);
           setTimeout(() => navigate('/admin'), 1000); 
@@ -41,7 +54,7 @@ export default function Login() {
                if (isOpNotAllowed) {
                  setError('Firebase Email/Password details are disabled in Firebase Console. Logging in via Demo Mode...');
                  useAuthStore.getState().setAdmin(true);
-                 useAuthStore.getState().setUser({ uid: 'admin_mock', email: loginEmail, role: 'admin' });
+                 useAuthStore.getState().setUser({ uid: 'admin_mock', email: loginEmail, role: 'superadmin' });
                  setTimeout(() => navigate('/admin'), 2000);
                } else {
                  setError('Failed to initialize admin account. ' + createErr.message);
@@ -50,7 +63,7 @@ export default function Login() {
            } else if (err.code === 'auth/operation-not-allowed' || err.message?.includes('operation-not-allowed') || err?.toString()?.includes('operation-not-allowed')) {
                setError('Firebase Email/Password is disabled. Please enable it in Firebase Console. Logging in via Demo Mode...');
                useAuthStore.getState().setAdmin(true);
-               useAuthStore.getState().setUser({ uid: 'admin_mock', email: loginEmail, role: 'admin' });
+               useAuthStore.getState().setUser({ uid: 'admin_mock', email: loginEmail, role: 'superadmin' });
                setTimeout(() => navigate('/admin'), 2500);
            } else {
              setError(err.message || 'Failed to login');
@@ -66,7 +79,24 @@ export default function Login() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      const userDocSnap = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (!userDocSnap.exists()) {
+        await auth.signOut();
+        throw new Error('Account not found or deleted. Please sign up again.');
+      } else if (userDocSnap.data().status === 'blocked') {
+        await auth.signOut();
+        throw new Error('Your account has been blocked. Please sign up again or contact support.');
+      }
+
       setTimeout(() => navigate('/dashboard'), 1000); 
     } catch (err: any) {
       const isOpNotAllowed = err?.code === 'auth/operation-not-allowed' || 
@@ -87,12 +117,53 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address first to reset your password.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage('A password reset link has been sent to your email. Click the link to set a new password, then come back here to log in.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
+
     setLoading(true);
     setError('');
     const provider = new GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
     try {
-      await signInWithPopup(auth, provider);
+      const cred = await signInWithPopup(auth, provider);
+      
+      const userDocRef = doc(db, 'users', cred.user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (userDocSnap.exists() && userDocSnap.data().status === 'blocked') {
+        await auth.signOut();
+        throw new Error('Your account has been blocked. Please sign up again.');
+      }
+      
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+           userId: cred.user.uid,
+           email: cred.user.email,
+           displayName: cred.user.displayName || 'Customer',
+           role: 'customer',
+           status: 'active',
+           createdAt: Date.now()
+        });
+      }
+
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to login with Google');
@@ -131,6 +202,12 @@ export default function Login() {
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
+          {message && (
+            <div className="p-4 bg-green-50 rounded-xl flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <p className="text-sm text-green-700">{message}</p>
+            </div>
+          )}
           <div>
             {!isAdminMode && <label className="block text-sm font-medium text-gray-700">Email Address</label>}
             <input
@@ -155,11 +232,23 @@ export default function Login() {
           </div>
           {!isAdminMode && (
             <div className="flex items-center justify-between mt-4">
-              <label className="flex items-center">
-                <input type="checkbox" className="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" />
+              <label className="flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-black border-gray-300 rounded focus:ring-black" 
+                />
                 <span className="ml-2 block text-sm text-gray-900">Remember me</span>
               </label>
-              <span className="text-sm font-medium text-black cursor-pointer hover:underline">Forgot password?</span>
+              <button 
+                type="button" 
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="text-sm font-medium text-black cursor-pointer hover:underline bg-transparent border-none p-0 disabled:opacity-50"
+              >
+                Forgot password?
+              </button>
             </div>
           )}
           <button

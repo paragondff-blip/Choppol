@@ -34,6 +34,12 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
   addItem: (product, quantity, selectedSize, selectedColor) => {
     set((state) => {
+      let activePrice = product.price;
+      if (product.sizeVariants && product.sizeVariants.length > 0) {
+        const sizeObj = product.sizeVariants.find(s => s.size === selectedSize);
+        if (sizeObj && sizeObj.priceModifier) activePrice += sizeObj.priceModifier;
+      }
+
       const existingItem = state.items.find(
         (i) => i.id === product.id && i.selectedSize === selectedSize && i.selectedColor === selectedColor
       );
@@ -50,6 +56,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           ...state.items,
           {
             ...product,
+            price: activePrice,
             cartItemId: Math.random().toString(36).substring(7),
             quantity,
             selectedSize,

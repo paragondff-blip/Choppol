@@ -14,57 +14,64 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         const userRef = doc(db, 'users', firebaseUser.uid);
         try {
           const userSnap = await getDoc(userRef);
-          let role = 'customer';
+          let role: any = 'customer';
+          let permissions = undefined;
           
           if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
-            role = 'admin';
+            role = 'superadmin';
           }
 
           if (userSnap.exists()) {
-            if (userSnap.data().role) {
-               role = userSnap.data().role;
+            const data = userSnap.data();
+            if (data.role) {
+               role = data.role;
             }
+            if (data.permissions) {
+               permissions = data.permissions;
+            }
+            
             if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
-               role = 'admin';
+               role = 'superadmin';
                try {
-                 await setDoc(userRef, { role: 'admin' }, { merge: true });
+                 await setDoc(userRef, { role: 'superadmin' }, { merge: true });
                } catch (e) {
-                 console.warn("Could not update role in firestore, proceeding with local admin setup.", e);
+                 console.warn("Could not update role in firestore.", e);
                }
             }
           } else {
             // New user registration flow
             try {
-              await setDoc(userRef, {
+              const userData = {
+                uid: firebaseUser.uid,
                 userId: firebaseUser.uid,
                 email: firebaseUser.email,
                 displayName: firebaseUser.displayName || '',
-                role: firebaseUser.email === 'nahid.mfal.mis@gmail.com' ? 'customer' : 'customer', // Rule only allows creating 'customer' initially
+                role: firebaseUser.email === 'nahid.mfal.mis@gmail.com' ? 'superadmin' : 'customer',
                 createdAt: Date.now(),
-              });
+              };
+              await setDoc(userRef, userData);
               if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
-                 // The rule might prevent us from updating to admin immediately without Firebase custom claims, but we store it locally.
-                 role = 'admin';
+                 role = 'superadmin';
               }
             } catch (e) {
               console.warn("Could not create user in firestore.", e);
             }
           }
 
-          setAdmin(role === 'admin');
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             role,
+            permissions
           });
         } catch (error) {
           console.error("Error fetching user data:", error);
           if (firebaseUser.email === 'nahid.mfal.mis@gmail.com') {
             setAdmin(true);
-            setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'admin' });
+            setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'superadmin' });
           } else {
-            setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
+            setUser({ uid: firebaseUser.uid, email: firebaseUser.email, role: 'customer' });
           }
         }
       } else {

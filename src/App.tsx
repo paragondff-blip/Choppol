@@ -13,6 +13,7 @@ import DynamicPage from './pages/DynamicPage';
 
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
+import BlogDetails from './pages/BlogDetails';
 import TrackOrder from './pages/TrackOrder';
 import Wishlist from './pages/Wishlist';
 import Shipping from './pages/Shipping';
@@ -37,12 +38,9 @@ export default function App() {
           <Route path="admin" element={<AdminDashboard />} />
           
           {/* Information Links */}
-          <Route path="about" element={<AboutUs />} />
           <Route path="blog" element={<Blog />} />
+          <Route path="blog/:id" element={<BlogDetails />} />
           <Route path="track-order" element={<TrackOrder />} />
-          <Route path="shipping" element={<Shipping />} />
-          <Route path="returns" element={<Returns />} />
-          <Route path="faq" element={<FAQ />} />
           <Route path="contact" element={<ContactUs />} />
           <Route path="p/:slug" element={<DynamicPage />} />
           

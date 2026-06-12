@@ -14,17 +14,25 @@ export default function ProductDetails() {
   
   const product = products.find(p => p.id === id);
   
-  const [selectedSize, setSelectedSize] = useState<number | string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<any>(null);
+  const [selectedColor, setSelectedColor] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState<string>('');
 
   useEffect(() => {
     if (product) {
       setMainImage(product.imageUrl);
-      setSelectedSize(product.sizes?.[0] || null);
-      if ((product as any).colors) {
-        setSelectedColor((product as any).colors[0]);
+      if (product.sizeVariants && product.sizeVariants.length > 0) {
+        setSelectedSize(product.sizeVariants[0]);
+      } else if (product.sizes && product.sizes.length > 0) {
+        setSelectedSize(product.sizes[0]);
+      }
+      
+      if (product.colorVariants && product.colorVariants.length > 0) {
+        setSelectedColor(product.colorVariants[0]);
+        if (product.colorVariants[0].imageUrl) setMainImage(product.colorVariants[0].imageUrl);
+      } else if (product.colors && product.colors.length > 0) {
+        setSelectedColor(product.colors[0]);
       }
     }
   }, [product]);
@@ -35,9 +43,18 @@ export default function ProductDetails() {
 
   const handleAddToCart = () => {
     if (selectedSize && selectedColor) {
-      addItem(product, quantity, selectedSize, selectedColor);
-      navigate('/cart');
+      const sizeId = typeof selectedSize === 'object' ? selectedSize.size : selectedSize;
+      const colorId = typeof selectedColor === 'object' ? selectedColor.name : selectedColor;
+      addItem(product, quantity, sizeId, colorId);
     }
+  };
+
+  const getActivePrice = () => {
+    let p = product.price;
+    if (selectedSize && typeof selectedSize === 'object' && selectedSize.priceModifier) {
+      p += selectedSize.priceModifier;
+    }
+    return p;
   };
 
   return (
@@ -80,7 +97,7 @@ export default function ProductDetails() {
           </div>
 
           <div className="flex items-center gap-4 mb-6">
-            <span className="text-3xl font-bold text-gray-900">৳{product.price}</span>
+            <span className="text-3xl font-bold text-gray-900">৳{getActivePrice()}</span>
             {product.originalPrice && (
               <span className="text-xl text-gray-500 line-through">৳{product.originalPrice}</span>
             )}
@@ -91,43 +108,57 @@ export default function ProductDetails() {
           </p>
 
           {/* Size Selection */}
-          {product.sizes && product.sizes.length > 0 && (
+          {(product.sizes || product.sizeVariants) && (product.sizes?.length > 0 || product.sizeVariants?.length! > 0) && (
             <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 uppercase mb-3">Select Size (EU)</h3>
+              <h3 className="text-sm font-bold text-gray-900 uppercase mb-3">Select Size</h3>
               <div className="flex flex-wrap gap-3">
-                {product.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`w-12 h-12 flex items-center justify-center rounded-lg font-medium border transition ${
-                      selectedSize === size 
-                      ? 'border-black bg-black text-white' 
-                      : 'border-gray-200 text-gray-900 hover:border-black'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {(product.sizeVariants || product.sizes)?.map((sizeObj: any) => {
+                  const sizeVal = sizeObj.size || sizeObj;
+                  const priceMod = sizeObj.priceModifier;
+                  const isSelected = typeof selectedSize === 'object' ? selectedSize?.size === sizeVal : selectedSize === sizeVal;
+                  return (
+                    <button
+                      key={sizeVal}
+                      onClick={() => setSelectedSize(sizeObj)}
+                      className={`px-4 py-2 flex items-center justify-center rounded-lg font-medium border transition ${
+                        isSelected 
+                        ? 'border-black bg-black text-white' 
+                        : 'border-gray-200 text-gray-900 hover:border-black'
+                      }`}
+                    >
+                      {sizeVal}
+                      {priceMod > 0 && <span className="ml-1 text-xs opacity-80">(+৳{priceMod})</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Color Selection */}
-          {product.colors && product.colors.length > 0 && (
+          {(product.colors || product.colorVariants) && (product.colors?.length > 0 || product.colorVariants?.length! > 0) && (
             <div className="mb-8">
-              <h3 className="text-sm font-bold text-gray-900 uppercase mb-3">Select Color</h3>
-              <div className="flex gap-3">
-                {product.colors.map(color => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 transition ${
-                      selectedColor === color ? 'border-gray-900 scale-110' : 'border-gray-200'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    aria-label={`Color ${color}`}
-                  />
-                ))}
+              <h3 className="text-sm font-bold text-gray-900 uppercase mb-3 text-red-600">Select Color</h3>
+              <div className="flex flex-wrap gap-3">
+                {(product.colorVariants || product.colors)?.map((colorObj: any) => {
+                  const colorHex = colorObj.hex || colorObj;
+                  const colorName = colorObj.name || colorObj;
+                  const isSelected = typeof selectedColor === 'object' ? selectedColor?.name === colorName : selectedColor === colorName;
+                  return (
+                    <button
+                      key={colorName}
+                      onClick={() => {
+                        setSelectedColor(colorObj);
+                        if (colorObj.imageUrl) setMainImage(colorObj.imageUrl);
+                      }}
+                      className={`w-10 h-10 rounded-full border-2 transition relative flex items-center justify-center ${
+                        isSelected ? 'border-gray-900 scale-110' : 'border-gray-300'
+                      }`}
+                      style={{ backgroundColor: colorHex }}
+                      title={colorName}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -141,10 +172,19 @@ export default function ProductDetails() {
             </div>
             <button 
               onClick={handleAddToCart}
-              className="flex-1 flex justify-center items-center gap-2 bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg shadow-black/10"
+              className="flex-1 flex justify-center items-center gap-2 border-2 border-black text-black bg-white px-6 py-4 rounded-xl font-bold hover:bg-gray-50 transition"
             >
               <ShoppingCart className="w-5 h-5" />
               Add to Cart
+            </button>
+            <button 
+              onClick={() => {
+                handleAddToCart();
+                navigate('/checkout');
+              }}
+              className="flex-1 flex justify-center items-center gap-2 bg-black text-white px-6 py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg shadow-black/10"
+            >
+              Order Now
             </button>
             <button 
               onClick={() => toggleWishlist(product)}

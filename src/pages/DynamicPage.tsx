@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+
+// Fallback components
+import AboutUs from './AboutUs';
+import Shipping from './Shipping';
+import Returns from './Returns';
+import FAQ from './FAQ';
 
 export default function DynamicPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,11 +20,9 @@ export default function DynamicPage() {
       try {
         if (!slug) return;
         
-        // Try exact doc id first
         let docRef = doc(db, 'pages', slug);
         let docSnap = await getDoc(docRef);
         
-        // If not found, try querying by slug
         if (!docSnap.exists()) {
           const q = query(collection(db, 'pages'), where('slug', '==', slug));
           const querySnap = await getDocs(q);
@@ -51,7 +55,13 @@ export default function DynamicPage() {
     );
   }
 
+  // If no override from DB, show fallbacks for default pages
   if (!pageData) {
+    if (slug === 'about') return <AboutUs />;
+    if (slug === 'shipping') return <Shipping />;
+    if (slug === 'returns') return <Returns />;
+    if (slug === 'faq') return <FAQ />;
+
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center min-h-[50vh] flex flex-col items-center justify-center">
         <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-4">404</h1>
@@ -70,3 +80,4 @@ export default function DynamicPage() {
     </div>
   );
 }
+
