@@ -77,6 +77,9 @@ export interface HomePageData {
 }
 
 export interface StoreSettings {
+  storeName?: string;
+  storeLogoUrl?: string;
+  headerLinks?: { label: string; url: string }[];
   signupDiscountPercentage: number;
   signupDiscountEnabled: boolean;
   paymentMethods: {

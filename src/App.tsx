@@ -6,8 +6,6 @@ import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import DynamicPage from './pages/DynamicPage';
 
@@ -33,8 +31,6 @@ export default function App() {
           <Route path="wishlist" element={<Wishlist />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="dashboard" element={<Dashboard />} />
           <Route path="admin" element={<AdminDashboard />} />
           
           {/* Information Links */}

@@ -3,9 +3,19 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { StoreSettings } from '../../types';
 import { Settings, Percent, DollarSign, CreditCard } from 'lucide-react';
+import ImagePicker from './ImagePicker';
 
 export default function AdminStoreSettings() {
   const [data, setData] = useState<StoreSettings>({
+    storeName: 'CHOPPOL',
+    storeLogoUrl: '',
+    headerLinks: [
+      { label: 'Home', url: '/' },
+      { label: 'Shop', url: '/shop' },
+      { label: 'About Us', url: '/about' },
+      { label: 'Blog', url: '/blog' },
+      { label: 'Track Order', url: '/track-order' }
+    ],
     signupDiscountPercentage: 10,
     signupDiscountEnabled: true,
     paymentMethods: {
@@ -62,6 +72,84 @@ export default function AdminStoreSettings() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
+        {/* Global Metadata */}
+        <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+          <div className="flex items-center mb-6">
+            <Settings className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-bold text-gray-900">General Information</h3>
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Store Name</label>
+            <input 
+              type="text" 
+              value={data.storeName || ''} 
+              onChange={(e) => setData({ ...data, storeName: e.target.value })} 
+              className="w-full px-4 py-2 bg-white border rounded-xl outline-none focus:ring-2 focus:ring-black"
+              placeholder="e.g. CHOPPOL"
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Store Logo</label>
+            <ImagePicker 
+               label="Upload Logo (Optional)" 
+               folder="site_assets" 
+               currentImageUrl={data.storeLogoUrl} 
+               onImageSelected={(url) => setData({...data, storeLogoUrl: url})} 
+            />
+          </div>
+          <div>
+            <div className="flex justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">Header Navigation Links</label>
+              <button 
+                type="button" 
+                onClick={() => setData({ ...data, headerLinks: [...(data.headerLinks || []), { label: '', url: '' }] })}
+                className="text-sm font-bold text-blue-600 hover:text-blue-700"
+              >
+                + Add Link
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(data.headerLinks || []).map((link, idx) => (
+                <div key={idx} className="flex gap-4">
+                  <input 
+                    type="text" 
+                    value={link.label} 
+                    onChange={(e) => {
+                      const newLinks = [...(data.headerLinks || [])];
+                      newLinks[idx].label = e.target.value;
+                      setData({ ...data, headerLinks: newLinks });
+                    }} 
+                    placeholder="Link Label (e.g. Home)"
+                    className="flex-1 px-4 py-2 bg-white border rounded-lg outline-none focus:ring-2 focus:ring-black"
+                  />
+                  <input 
+                    type="text" 
+                    value={link.url} 
+                    onChange={(e) => {
+                      const newLinks = [...(data.headerLinks || [])];
+                      newLinks[idx].url = e.target.value;
+                      setData({ ...data, headerLinks: newLinks });
+                    }} 
+                    placeholder="URL Path (e.g. /shop)"
+                    className="flex-1 px-4 py-2 bg-white border rounded-lg outline-none focus:ring-2 focus:ring-black"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const newLinks = [...(data.headerLinks || [])];
+                      newLinks.splice(idx, 1);
+                      setData({ ...data, headerLinks: newLinks });
+                    }}
+                    className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg font-bold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Discount Settings */}
         <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
           <div className="flex items-center mb-6">

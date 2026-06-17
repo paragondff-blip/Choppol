@@ -1,11 +1,12 @@
 import { ShoppingCart, Menu, Search, User, X, Heart, LogOut } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
 import { useWishlistStore } from '../../store/useWishlistStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,7 +16,31 @@ export default function Header() {
   const wishlistItems = useWishlistStore((state) => state.items);
   const { user, isAdmin } = useAuthStore();
   const navigate = useNavigate();
+  const [storeName, setStoreName] = useState('CHOPPOL');
+  const [storeLogo, setStoreLogo] = useState('');
+  const [headerLinks, setHeaderLinks] = useState([
+    { label: 'Home', url: '/' },
+    { label: 'Shop', url: '/shop' },
+    { label: 'About Us', url: '/about' },
+    { label: 'Blog', url: '/blog' },
+    { label: 'Track Order', url: '/track-order' }
+  ]);
   
+  useEffect(() => {
+    const fetchStore = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'store'));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.storeName) setStoreName(data.storeName);
+          if (data.storeLogoUrl) setStoreLogo(data.storeLogoUrl);
+          if (data.headerLinks) setHeaderLinks(data.headerLinks);
+        }
+      } catch (err) {}
+    };
+    fetchStore();
+  }, []);
+
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalWishlistItems = wishlistItems.length;
 
@@ -50,16 +75,18 @@ export default function Header() {
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold tracking-tighter text-black uppercase">CHOPPOL</span>
+              {storeLogo ? (
+                <img src={storeLogo} alt={storeName} className="h-8 max-w-[150px] object-contain" />
+              ) : (
+                <span className="text-2xl font-bold tracking-tighter text-black uppercase">{storeName}</span>
+              )}
             </Link>
           </div>
 
           <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-gray-700">
-            <Link to="/" className="hover:text-black transition-colors">Home</Link>
-            <Link to="/shop" className="hover:text-black transition-colors">Shop</Link>
-            <Link to="/about" className="hover:text-black transition-colors">About Us</Link>
-            <Link to="/blog" className="hover:text-black transition-colors">Blog</Link>
-            <Link to="/track-order" className="hover:text-black transition-colors">Track Order</Link>
+            {headerLinks.map((link, idx) => (
+              <Link key={idx} to={link.url} className="hover:text-black transition-colors">{link.label}</Link>
+            ))}
           </nav>
 
           <div className="flex items-center space-x-4">
@@ -69,7 +96,7 @@ export default function Header() {
             >
               {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
             </button>
-            <Link to={user ? (isAdmin ? '/admin' : '/dashboard') : '/login'} className="text-gray-700 hover:text-black">
+            <Link to={user ? '/admin' : '/login'} className="text-gray-700 hover:text-black">
               <User className="h-5 w-5" />
             </Link>
             {user && (

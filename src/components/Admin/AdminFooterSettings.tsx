@@ -73,6 +73,18 @@ export default function AdminFooterSettings() {
     setFooterData(newData);
   };
 
+  const addLink = (type: 'quickLinks' | 'customerService') => {
+    const newData = { ...footerData };
+    newData[type].push({ label: '', url: '' });
+    setFooterData(newData);
+  };
+
+  const removeLink = (type: 'quickLinks' | 'customerService', index: number) => {
+    const newData = { ...footerData };
+    newData[type].splice(index, 1);
+    setFooterData(newData);
+  };
+
   if (loading) return <div className="text-center py-10">Loading settings...</div>;
 
   return (
@@ -127,12 +139,16 @@ export default function AdminFooterSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Quick Links */}
           <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Quick Links</h3>
+              <button type="button" onClick={() => addLink('quickLinks')} className="text-sm text-blue-600 hover:text-blue-700 font-bold">+ Add</button>
+            </div>
             <div className="space-y-4">
               {footerData.quickLinks.map((link, idx) => (
                 <div key={idx} className="flex gap-2">
                   <input type="text" value={link.label} onChange={(e) => updateLink('quickLinks', idx, 'label', e.target.value)} className="w-1/2 px-2 py-1.5 border rounded text-sm outline-none focus:ring-1 focus:ring-black" placeholder="Label" />
                   <input type="text" value={link.url} onChange={(e) => updateLink('quickLinks', idx, 'url', e.target.value)} className="w-1/2 px-2 py-1.5 border rounded text-sm outline-none focus:ring-1 focus:ring-black" placeholder="URL" />
+                  <button type="button" onClick={() => removeLink('quickLinks', idx)} className="text-red-500 hover:text-red-700 font-bold px-2">X</button>
                 </div>
               ))}
             </div>
@@ -140,12 +156,16 @@ export default function AdminFooterSettings() {
 
           {/* Customer Service Links */}
           <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Customer Service</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Customer Service</h3>
+              <button type="button" onClick={() => addLink('customerService')} className="text-sm text-blue-600 hover:text-blue-700 font-bold">+ Add</button>
+            </div>
             <div className="space-y-4">
               {footerData.customerService.map((link, idx) => (
                 <div key={idx} className="flex gap-2">
                   <input type="text" value={link.label} onChange={(e) => updateLink('customerService', idx, 'label', e.target.value)} className="w-1/2 px-2 py-1.5 border rounded text-sm outline-none focus:ring-1 focus:ring-black" placeholder="Label" />
                   <input type="text" value={link.url} onChange={(e) => updateLink('customerService', idx, 'url', e.target.value)} className="w-1/2 px-2 py-1.5 border rounded text-sm outline-none focus:ring-1 focus:ring-black" placeholder="URL" />
+                  <button type="button" onClick={() => removeLink('customerService', idx)} className="text-red-500 hover:text-red-700 font-bold px-2">X</button>
                 </div>
               ))}
             </div>

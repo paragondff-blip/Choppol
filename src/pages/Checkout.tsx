@@ -14,6 +14,7 @@ export default function Checkout() {
   
   const [shippingDetails, setShippingDetails] = useState({
     fullName: '',
+    email: '',
     phone: '',
     address: '',
     city: '',
@@ -93,8 +94,40 @@ export default function Checkout() {
 
     try {
       const orderId = doc(collection(db, 'orders')).id;
+      
+      let customerId = user ? user.uid : `guest_${shippingDetails.phone.replace(/\D/g, '') || Date.now()}`;
+      
+      // Upsert customer info
+      const customerRef = doc(db, 'users', customerId);
+      const customerSnap = await getDoc(customerRef);
+      if (customerSnap.exists() && customerSnap.data().status === 'blocked') {
+        alert("Your account has been blocked. You cannot place an order. Please contact support.");
+        setLoading(false);
+        return;
+      }
+      
+      if (!customerSnap.exists()) {
+         await setDoc(customerRef, {
+            email: shippingDetails.email || '',
+            displayName: shippingDetails.fullName || 'Guest Customer',
+            phone: shippingDetails.phone || '',
+            address: shippingDetails.address || '',
+            city: shippingDetails.city || '',
+            role: 'customer',
+            status: 'active',
+            createdAt: Date.now()
+         });
+      } else {
+         await updateDoc(customerRef, {
+            email: shippingDetails.email || customerSnap.data().email || '',
+            displayName: shippingDetails.fullName || customerSnap.data().displayName || 'Guest Customer',
+            address: shippingDetails.address || customerSnap.data().address || '',
+            city: shippingDetails.city || customerSnap.data().city || ''
+         });
+      }
+
       const orderData = {
-        userId: user ? user.uid : 'guest',
+        userId: customerId,
         items: items,
         totalAmount: grandTotal,
         discountApplied: discountAmount,
@@ -145,8 +178,8 @@ export default function Checkout() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4">Congratulations! Order Successfully completed!</h2>
         <p className="text-lg text-gray-600 mb-8">Thank you for shopping with CHOPPOL. Your order is now confirmed and pending processing.</p>
-        <Link to={user ? "/dashboard" : "/shop"} className="inline-flex py-3 px-6 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition">
-          {user ? 'View Order in Dashboard' : 'Continue Shopping'}
+        <Link to="/shop" className="inline-flex py-3 px-6 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition">
+          Continue Shopping
         </Link>
       </div>
     );
@@ -261,23 +294,29 @@ export default function Checkout() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Shipping Details</h3>
             <form id="checkout-form" className="space-y-4" onSubmit={handlePlaceOrder}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                   <input required type="text" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.fullName} onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})}/>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <input type="email" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.email} onChange={e => setShippingDetails({...shippingDetails, email: e.target.value})}/>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                   <input required type="tel" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.phone} onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})}/>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City / Region</label>
+                  <input required type="text" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})}/>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Detailed Address</label>
                 <textarea required rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})}></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City / Region</label>
-                <input required type="text" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-black focus:border-black" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})}/>
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Payment Method</h3>
